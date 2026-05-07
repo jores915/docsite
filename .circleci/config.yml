@@ -1,42 +1,27 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:node:.
 version: 2.1
-orbs:
-  node: circleci/node@5
+
 jobs:
-  build-node:
-    # Build node project
-    executor: node/default
-    steps:
-      - checkout
-      - node/install-packages:
-          cache-path: ~/project/node_modules
-          override-ci-command: npm install
-      - run:
-          command: npm run build
-      - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
-      - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
   deploy:
-    # This is an example deploy job, not actually used by the workflow
     docker:
       - image: cimg/base:stable
     steps:
-      # Replace this with steps to deploy to users
+      - checkout
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Install Foundry
+          command: |
+            curl -L https://foundry.paradigm.xyz | bash
+            foundryup
+      - run:
+          name: Deploy Smart Contract
+          command: |
+            forge create --rpc-url $ETH_RPC_URL --private-key $PRIVATE_KEY path/to/YourContract.sol:YourContract
+      - run:
+          name: Verify on Etherscan
+          command: |
+            forge verify-contract --chain-id 1 --etherscan-api-key $ETHERSCAN_API_KEY path/to/YourContract.sol:YourContract
+
 workflows:
-  build:
+  version: 2
+  deploy:
     jobs:
-      - build-node
-    # - deploy:
-    #     requires:
-    #       - build-node
+      - deploy
